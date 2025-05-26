@@ -11,6 +11,7 @@ CELL_SIZE = 50
 GRID_WIDTH = 62
 GRID_HEIGHT = 45
 
+# Classe représentant une cellule du quadrillage
 class GridCell(QGraphicsRectItem):
     def __init__(self, x, y, state=0):
         super().__init__(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
@@ -20,14 +21,17 @@ class GridCell(QGraphicsRectItem):
         self.setBrush(QBrush(Qt.GlobalColor.transparent))
         self.setPen(QPen(Qt.GlobalColor.gray))
 
+    # Gestion du clic de souris pour changer l'état de la case
     def mousePressEvent(self, event):
         self.toggle_state()
 
+    # Passage de la case en noir ou blanc
     def toggle_state(self):
         self.state = 1 if self.state == 0 else 0
         color = Qt.GlobalColor.black if self.state == 1 else Qt.GlobalColor.transparent
         self.setBrush(QBrush(color))
 
+# Fenêtre principale de l'éditeur de quadrillage
 class GridEditor(QWidget):
     def __init__(self):
         super().__init__()
@@ -42,6 +46,7 @@ class GridEditor(QWidget):
 
         self.grid_cells = []
 
+        # Création de la grille de cellules
         for y in range(GRID_HEIGHT):
             row = []
             for x in range(GRID_WIDTH):
@@ -58,6 +63,7 @@ class GridEditor(QWidget):
         layout.addWidget(self.save_button)
         self.setLayout(layout)
 
+    # Méthode pour sauvegarder l'état de la grille dans un fichier JSON
     def save_grid(self):
         data = [[cell.state for cell in row] for row in self.grid_cells]
         with open("grille_magasin.json", "w") as f:
