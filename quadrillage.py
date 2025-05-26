@@ -8,7 +8,7 @@ from PyQt6.QtGui import QPen, QBrush, QPixmap
 from PyQt6.QtCore import Qt, QRectF
 
 CELL_SIZE = 50
-GRID_WIDTH =62
+GRID_WIDTH = 62
 GRID_HEIGHT = 45
 
 class GridCell(QGraphicsRectItem):
