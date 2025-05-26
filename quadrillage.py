@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QApplication, QGraphicsView, QGraphicsScene, QGraphicsRectItem,
     QPushButton, QVBoxLayout, QWidget
 )
-from PyQt6.QtGui import QPen, QBrush, QPixmap
+from PyQt6.QtGui import QPen, QBrush, QPixmap, QGuiApplication
 from PyQt6.QtCore import Qt, QRectF
 
 CELL_SIZE = 50
@@ -33,11 +33,17 @@ class GridEditor(QWidget):
         super().__init__()
         self.setWindowTitle("Quadrillage Magasin")
 
+        # Obtenir la taille de l'écran principal
+        screen = QGuiApplication.primaryScreen()
+        screen_size = screen.availableGeometry().size()
+        width, height = screen_size.width(), screen_size.height()
+
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(self.view.renderHints())
 
-        self.plan = QPixmap("plan.jpg")
+        # Charger et redimensionner le plan à la taille de l'écran
+        self.plan = QPixmap("plan.jpg").scaled(width, height, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
         self.scene.addPixmap(self.plan)
 
         self.grid_cells = []
@@ -57,6 +63,10 @@ class GridEditor(QWidget):
         layout.addWidget(self.view)
         layout.addWidget(self.save_button)
         self.setLayout(layout)
+
+        # Ajuster la taille de la fenêtre et de la vue
+        self.resize(width, height)
+        self.view.setFixedSize(width, height)
 
     def save_grid(self):
         data = [[cell.state for cell in row] for row in self.grid_cells]
