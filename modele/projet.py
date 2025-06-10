@@ -1,4 +1,4 @@
-from produits import Produit
+from modele.produit import Produit
 
 class Projet:
     def __init__(self, nom: str, auteur: str, date_creation: str, 
