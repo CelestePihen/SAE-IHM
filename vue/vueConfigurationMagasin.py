@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-
+import os
 from PyQt6.QtCore import Qt
 from modele.ProjetModele import ProjetModele
 from vueNouveauProjet import DialogueNouveauProjet
