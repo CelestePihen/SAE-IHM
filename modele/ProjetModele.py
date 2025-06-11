@@ -132,7 +132,7 @@ class ModeleProjet(QObject):
         if not self.projet_courant:
             return False
         
-        dossier_projet = self.dossier_projets / self.projet_courant.nom
+        dossier_projet: str = os.path.join(self.dossier_projets, self.projet_courant.nom)
         os.makedirs(dossier_projet, exist_ok=True)
         
         # permet de sauvegarder le projet dans un fichier JSON
@@ -178,8 +178,9 @@ class ModeleProjet(QObject):
     def supprimer_projet(self, nom_projet: str) -> bool:
         """Supprime un projet"""
         try:
-            dossier_projet = self.dossier_projets / nom_projet
+            dossier_projet:str = os.path.join(self.dossier_projets, nom_projet)
             if os.path.exists(dossier_projet):
+                # rmtree permet de supprimer un dossier et tous ses sous-dossiers/fichiers
                 shutil.rmtree(dossier_projet)
                 if self.projet_courant and self.projet_courant.nom == nom_projet:
                     self.projet_courant = None
