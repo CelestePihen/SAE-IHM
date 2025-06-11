@@ -6,7 +6,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal, QPointF
 from PyQt6.QtGui import QPixmap, QPen, QBrush, QColor, QMouseEvent
-import heapq
 
 class VuePlanMagasin(QGraphicsView):
     """Vue pour afficher et manipuler le plan du magasin"""
