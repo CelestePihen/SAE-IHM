@@ -1,4 +1,4 @@
-from modele.ProduitModele import Produit
+from modele.produitModele import Produit
 import json, os, shutil
 from PyQt6.QtCore import pyqtSignal, QObject
 from datetime import datetime
@@ -24,7 +24,7 @@ class Projet:
         else:
             self.produits = []
             
-class ModeleProjet(QObject):
+class ProjetModele(QObject):
     projet_modifie: pyqtSignal = pyqtSignal()
     
     def __init__(self):

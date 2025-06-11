@@ -5,16 +5,17 @@ from PyQt6.QtWidgets import (
     QFormLayout, QSplitter, QGroupBox
 )
 
-from ProjetModele import ModeleProjet
+
 from PyQt6.QtCore import Qt
-from vuePlanMagasin import VuePlanMagasin
+from ..modele.projetModele import ProjetModele
+from vue.vuePlanMagasin import VuePlanMagasin
+from vue.vueConfigurationMagasin import VueConfigurationMagasin
 
 class VueConfigurationMagasin(QWidget):
-    def __init__(self, modele: ModeleProjet):
+    def __init__(self, modele: ProjetModele):
         super().__init__()
         self.modele = modele
         self.init_widgets()
-        self.modele.projet_modifie.connect(self.mettre_a_jour_affichage)
     
     def init_widgets(self):
         layout: QVBoxLayout= QVBoxLayout(self)
