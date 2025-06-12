@@ -8,9 +8,9 @@ from PyQt6.QtCore import Qt
 
 import os
 from PyQt6.QtCore import Qt
-from modele.ProjetModele import ProjetModele
+from ProjetModele import ProjetModele
 from vueNouveauProjet import DialogueNouveauProjet
-from vue.vuePlanMagasin import VuePlanMagasin
+from vuePlanMagasin import VuePlanMagasin
 
 class VueConfigurationMagasin(QWidget):
     def __init__(self, modele: ProjetModele):

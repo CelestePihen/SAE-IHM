@@ -24,6 +24,21 @@ class Projet:
         else:
             self.produits = []
             
+    def to_dict(self) -> dict:
+        """Convertit le projet en dictionnaire pour la sérialisation JSON"""
+        return {
+            'nom': self.nom,
+            'auteur': self.auteur,
+            'date_creation': self.date_creation,
+            'nom_magasin': self.nom_magasin,
+            'adresse_magasin': self.adresse_magasin,
+            'plan_image': self.plan_image,
+            'quadrillage_x': self.quadrillage_x,
+            'quadrillage_y': self.quadrillage_y,
+            'taille_case': self.taille_case,
+            'produits': [p.__dict__ for p in self.produits]
+        }
+            
 class ProjetModele(QObject):
     projet_modifie: pyqtSignal = pyqtSignal()
     
@@ -139,7 +154,7 @@ class ProjetModele(QObject):
         # asdict convertit un Projet (l'objet) en dictionnaire
         fichier_projet: str = os.path.join(dossier_projet, f"{self.projet_courant.nom}.json")
         with open(fichier_projet, 'w', encoding='utf-8') as f:
-            json.dump(asdict(self.projet_courant), f, ensure_ascii=False, indent=2)
+            json.dump(self.projet_courant.to_dict(), f, ensure_ascii=False, indent=2)
         
         return True
     
