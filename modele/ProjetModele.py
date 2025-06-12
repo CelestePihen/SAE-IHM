@@ -1,4 +1,4 @@
-from modele.produitModele import Produit
+from ProduitModele import Produit
 import json, os, shutil
 from PyQt6.QtCore import pyqtSignal, QObject
 from datetime import datetime
