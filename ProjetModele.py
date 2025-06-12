@@ -8,7 +8,7 @@ class Projet:
     def __init__(self, nom: str, auteur: str, date_creation: str, 
                  nom_magasin: str, adresse_magasin: str, plan_image: str = "",
                  quadrillage_x: int = 0, quadrillage_y: int = 0, 
-                 taille_case: int = 30, produits: list[Produit] = None):
+                 taille_case: int = 30, produits: list[Produit] = None, debut: tuple[int,int] = (0, 0), fin: tuple[int,int] = (0, 0)):
         self.nom = nom
         self.auteur = auteur
         self.date_creation = date_creation
@@ -18,6 +18,8 @@ class Projet:
         self.quadrillage_x = quadrillage_x
         self.quadrillage_y = quadrillage_y
         self.taille_case = taille_case
+        self.debut = debut
+        self.fin = fin
         
         if produits is not None:
             self.produits = produits
@@ -36,7 +38,9 @@ class Projet:
             'quadrillage_x': self.quadrillage_x,
             'quadrillage_y': self.quadrillage_y,
             'taille_case': self.taille_case,
-            'produits': [p.__dict__ for p in self.produits]
+            'produits': [p.__dict__ for p in self.produits],
+            'debut': self.debut,
+            'fin': self.fin
         }
             
 class ProjetModele(QObject):
