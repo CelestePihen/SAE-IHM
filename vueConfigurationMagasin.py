@@ -18,6 +18,9 @@ class VueConfigurationMagasin(QWidget):
         self.modele = modele
         self.init_widgets()
         self.modele.projet_modifie.connect(self.mettre_a_jour_affichage)
+        
+        self.debut = False
+        self.fin = False
     
     def init_widgets(self):
         layout: QVBoxLayout= QVBoxLayout(self)
@@ -118,6 +121,11 @@ class VueConfigurationMagasin(QWidget):
         
         splitter.addWidget(config_widget)
         
+        self.btn_debut : QPushButton = QPushButton("Entrée magasin")
+        produits_layout.addWidget(self.btn_debut)
+        self.btn_fin : QPushButton = QPushButton("Sortie magasin")
+        produits_layout.addWidget(self.btn_fin)
+        
         # vue du plan
         self.vue_plan = VuePlanMagasin()
         splitter.addWidget(self.vue_plan)
@@ -139,8 +147,55 @@ class VueConfigurationMagasin(QWidget):
         self.btn_appliquer_quad.clicked.connect(self.appliquer_quadrillage)
         self.btn_ajouter_produit.clicked.connect(self.ajouter_produit)
         self.btn_positionner.clicked.connect(self.positionner_produit)
+        
         self.vue_plan.produit_positionne.connect(self.produit_positionne)
+        self.vue_plan.debut_position.connect(self.debut_positionne)
+        self.vue_plan.fin_position.connect(self.fin_positionnee)
+        
+        self.btn_debut.clicked.connect(self.position_deb)
+        self.btn_fin.clicked.connect(self.position_fin)
     
+    def position_deb(self):
+        if not self.modele.projet_courant:
+            QMessageBox.warning(self, "Erreur", "Aucun projet ouvert.")
+            return
+        
+        if self.debut == False:
+            self.debut = True
+            self.vue_plan.definir_debut_position(True)
+            # Active le mode positionnement pour le début dans la vue plan
+            QMessageBox.information(self, "Mode positionnement", 
+                                "Cliquez sur le plan pour positionner l'entrée du magasin")
+        
+    def position_fin(self):
+        """Active le mode positionnement pour la sortie du magasin"""
+        if not self.modele.projet_courant:
+            QMessageBox.warning(self, "Erreur", "Aucun projet ouvert.")
+            return
+        
+        if self.fin == False:
+            self.fin = True
+            self.vue_plan.definir_fin_position(True)
+            # Active le mode positionnement pour la fin dans la vue plan
+            QMessageBox.information(self, "Mode positionnement", 
+                                "Cliquez sur le plan pour positionner la sortie du magasin")
+    
+    def debut_positionne(self, x, y):
+        """Gère le positionnement du début"""
+        success = self.modele.positionner_debut(x, y)
+        if success:
+            QMessageBox.information(self, "Succès", f"Entrée positionnée en ({x}, {y})")
+        else:
+            QMessageBox.warning(self, "Erreur", "Impossible de positionner l'entrée.")
+    
+    def fin_positionnee(self, x, y):
+        """Gère le positionnement de la fin"""
+        success = self.modele.positionner_fin(x, y)
+        if success:
+            QMessageBox.information(self, "Succès", f"Sortie positionnée en ({x}, {y})")
+        else:
+            QMessageBox.warning(self, "Erreur", "Impossible de positionner la sortie.")
+        
     def produit_positionne(self, nom, x, y):
         """Positionne le produit dans le modèle et met à jour l'affichage"""
         success = self.modele.positionner_produit(nom, x, y)
@@ -313,6 +368,14 @@ class VueConfigurationMagasin(QWidget):
                 
                 if produit.est_positionne():
                     self.vue_plan.afficher_produit(produit.nom, produit.position_x, produit.position_y)
+                    
+            if projet.debut is not None:
+                print("vueConfigurationMagasin: mettre_a_jour_affichage: début déjà positionné")
+                self.vue_plan.afficher_entree(projet.debut[0], projet.debut[1])
+                
+            if projet.fin is not None:
+                print("vueConfigurationMagasin: mettre_a_jour_affichage: fin déjà positionnée")
+                self.vue_plan.afficher_sortie(projet.fin[0], projet.fin[1])
         else:
             self.label_nom.setText("-")
             self.label_auteur.setText("-")

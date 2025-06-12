@@ -11,6 +11,8 @@ class VuePlanMagasin(QGraphicsView):
     """Vue pour afficher et manipuler le plan du magasin"""
     
     produit_positionne: pyqtSignal = pyqtSignal(str, int, int)
+    debut_position: pyqtSignal = pyqtSignal(int, int)
+    fin_position: pyqtSignal = pyqtSignal(int, int)
     
     def __init__(self):
         super().__init__()
@@ -20,18 +22,25 @@ class VuePlanMagasin(QGraphicsView):
         
         self.plan_item: QGraphicsPixmapItem = None
         self.quadrillage_items: list[QGraphicsLineItem] = []
-        self.produit_items: dict = {}
+        self.produit_items: dict[QGraphicsRectItem] = {}
+        self.debut_item: QGraphicsRectItem = None
+        self.fin_item: QGraphicsRectItem = None
         self.produit_en_cours: str = None
         
         self.taille_case: int = 30
         self.nb_cases_x: int = 0
         self.nb_cases_y: int = 0
+        
+        self.debut = False
+        self.fin = False
     
     def charger_plan(self, chemin_image: str):
         """Charge et affiche le plan du magasin"""
         self.scene.clear()
         self.quadrillage_items.clear()
         self.produit_items.clear()
+        self.debut_item = None
+        self.fin_item = None
         
         pixmap: QPixmap = QPixmap(chemin_image)
         if not pixmap.isNull():
@@ -67,10 +76,18 @@ class VuePlanMagasin(QGraphicsView):
     def definir_produit_a_positionner(self, nom_produit: str):
         """Définit le produit à positionner au prochain clic"""
         self.produit_en_cours = nom_produit
+        
+    def definir_debut_position(self, debut: bool):
+        """Définit si on doit placer le début"""
+        self.debut = debut
+        
+    def definir_fin_position(self, fin: bool):
+        """Définit si on doit placer le début"""
+        self.fin = fin
     
     def mousePressEvent(self, event: QMouseEvent):
         """Gère le clic pour positionner un produit"""
-        if self.produit_en_cours and event.button() == Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             scene_pos: QPointF = self.mapToScene(event.pos())
             
             # convertir en coordonnées de grille
@@ -78,8 +95,15 @@ class VuePlanMagasin(QGraphicsView):
             grid_y: int = int(scene_pos.y() // self.taille_case)
             
             if 0 <= grid_x < self.nb_cases_x and 0 <= grid_y < self.nb_cases_y:
-                self.produit_positionne.emit(self.produit_en_cours, grid_x, grid_y)
-                self.produit_en_cours = None
+                if self.produit_en_cours:
+                    self.produit_positionne.emit(self.produit_en_cours, grid_x, grid_y)
+                    self.produit_en_cours = None
+                elif self.debut == True:
+                    self.debut_position.emit(grid_x, grid_y)
+                    self.debut = False
+                elif self.fin == True:
+                    self.fin_position.emit(grid_x, grid_y)
+                    self.fin = False
         
         super().mousePressEvent(event)
     
@@ -98,6 +122,46 @@ class VuePlanMagasin(QGraphicsView):
         
         self.scene.addItem(rect)
         self.produit_items[nom] = rect
+        
+    def afficher_entree(self, x: int, y: int):
+        """Affiche l'entrée sur le plan"""
+        # Supprimer l'ancienne position si elle existe
+        if self.debut_item is not None:
+            if self.debut_item.scene() is not None:
+                print("Supprimer l'ancienne entrée")
+                self.scene.removeItem(self.debut_item)
+            self.debut_item = None
+        
+        # Créer le nouvel item
+        rect = QGraphicsRectItem(x * self.taille_case + 2, y * self.taille_case + 2,
+                               self.taille_case - 4, self.taille_case - 4)
+        rect.setBrush(QBrush(QColor(0, 0, 255, 150)))
+        rect.setPen(QPen(QColor(0, 0, 255)))
+        rect.setToolTip("Entrée")
+        
+        self.scene.addItem(rect)
+        self.debut_item = rect
+        print(f"Entrée positionnée en ({x}, {y})")
+        
+    def afficher_sortie(self, x: int, y: int):
+        """Affiche la sortie sur le plan"""
+        # Supprimer l'ancienne position si elle existe
+        if self.fin_item is not None:
+            if self.fin_item.scene() is not None:
+                print("Supprimer l'ancienne sortie")
+                self.scene.removeItem(self.fin_item)
+            self.fin_item = None
+        
+        # Créer le nouvel item
+        rect = QGraphicsRectItem(x * self.taille_case + 2, y * self.taille_case + 2,
+                               self.taille_case - 4, self.taille_case - 4)
+        rect.setBrush(QBrush(QColor(0, 255, 255, 150)))
+        rect.setPen(QPen(QColor(0, 255, 255)))
+        rect.setToolTip("Sortie")
+        
+        self.scene.addItem(rect)
+        self.fin_item = rect
+        print(f"Sortie positionnée en ({x}, {y})")
     
     def afficher_chemin(self, chemin: list[tuple[int, int]]):
         """Affiche le chemin optimal sur le plan"""
