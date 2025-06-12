@@ -146,6 +146,24 @@ class ProjetModele(QObject):
                 return True
         return False
     
+    def positionner_debut(self, x: int, y: int) -> bool:
+        """Positionne le point de début du quadrillage"""
+        if not self.projet_courant:
+            return False
+        
+        self.projet_courant.debut = (x, y)
+        self.projet_modifie.emit()
+        return True
+    
+    def positionner_fin(self, x: int, y: int) -> bool:
+        """Positionne le point de fin du quadrillage"""
+        if not self.projet_courant:
+            return False
+        
+        self.projet_courant.fin = (x, y)
+        self.projet_modifie.emit()
+        return True
+    
     def sauvegarder_projet(self) -> bool:
         """Sauvegarde le projet courant"""
         if not self.projet_courant:
