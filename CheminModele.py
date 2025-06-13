@@ -103,18 +103,14 @@ class CheminModele:
     def _est_position_valide(self, position: tuple[int, int]) -> bool:
         """Vérifie si une position est valide dans la grille"""
         x, y = position
-        if not self.grille_accessible:
+        if not self.projet.quadrillage_x or not self.projet.quadrillage_y:
             return False
-        hauteur: int = len(self.grille_accessible)
-        largeur: int = len(self.grille_accessible[0]) if self.grille_accessible else 0
-        
+            
         # Vérifier les limites
-        if not (0 <= x < largeur and 0 <= y < hauteur):
+        if not (0 <= x < self.projet.quadrillage_x and 0 <= y < self.projet.quadrillage_y):
             return False
         
-        # Vérifier l'accessibilité
-        accessible = self.grille_accessible[y][x]
-        return accessible
+        return True  # La position est valide si on arrive ici
     
     def _dijkstra_distance(self, debut: tuple[int, int], fin: tuple[int, int]) -> float:
         """Calcule la distance réelle entre deux points avec Dijkstra"""
@@ -122,64 +118,51 @@ class CheminModele:
         return len(chemin) - 1 if chemin else float('inf')
    
     def _dijkstra(self, debut: tuple[int, int], fin: tuple[int, int]) -> list[tuple[int, int]]:
-        """Algorithme de Dijkstra pour trouver le chemin le plus court"""
-        if not self.grille_accessible:
-            return []
-       
-        hauteur: int = len(self.grille_accessible)
-        largeur: int = len(self.grille_accessible[0])
-       
-        # vérifications de base
-        if (not (0 <= debut[0] < largeur and 0 <= debut[1] < hauteur) or
-            not (0 <= fin[0] < largeur and 0 <= fin[1] < hauteur)):
-            return []
+        """Implémente l'algorithme de Dijkstra pour trouver le plus court chemin"""
+        distances = {}
+        precedents = {}
+        visite = []
         
-        if not self.grille_accessible[debut[1]][debut[0]] or not self.grille_accessible[fin[1]][fin[0]]:
-            return []
-       
-        import heapq
-        file = [(0, debut)]
-        distances = {debut: 0}
-        predecesseurs = {}
-        visites = set()
-       
-        while file:
-            distance_actuelle, position_actuelle = heapq.heappop(file)
-           
-            # si on a déjà visité cette position
-            if position_actuelle in visites:
-                continue
+        distances[debut] = 0
+        visite.append((0, debut))
+        
+        while visite:
+            # trouve le noeud non visité avec la plus petite distance
+            visite.sort(key=lambda x: x[0])
+            distance_courante, noeud_courant = visite.pop(0)
+            
+            if noeud_courant == fin:
+                break
                 
-            visites.add(position_actuelle)
-           
-            # si on a atteint la destination
-            if position_actuelle == fin:
-                chemin: list[tuple[int, int]] = []
-                position: tuple[int, int] = fin
-                while position in predecesseurs:
-                    chemin.append(position)
-                    position = predecesseurs[position]
-                chemin.append(debut)
-                return list(reversed(chemin))
-           
-            # regarde les voisins (4 directions)
-            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                voisin: tuple[int, int] = (position_actuelle[0] + dx, position_actuelle[1] + dy)
-               
-                # vérifie si le voisin est valide et accessible
-                if (0 <= voisin[0] < largeur and 0 <= voisin[1] < hauteur and
-                    self.grille_accessible[voisin[1]][voisin[0]] and voisin not in visites):
-                   
-                    # distance = distance actuelle + 1
-                    nouvelle_distance: int = distance_actuelle + 1
-                   
-                    # si on trouve un chemin plus court vers ce voisin
-                    if voisin not in distances or nouvelle_distance < distances[voisin]:
-                        distances[voisin] = nouvelle_distance
-                        predecesseurs[voisin] = position_actuelle
-                        heapq.heappush(file, (nouvelle_distance, voisin))
-       
-        return []  # aucun chemin trouvé
+            # si on a déjà trouvé un meilleur chemin
+            if noeud_courant in distances and distance_courante > distances[noeud_courant]:
+                continue
+            
+            x, y = noeud_courant
+            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                voisin = (x + dx, y + dy)
+                
+                if not self._est_position_valide(voisin):
+                    continue
+                    
+                nouvelle_distance = distance_courante + 1
+                
+                if voisin not in distances or nouvelle_distance < distances[voisin]:
+                    distances[voisin] = nouvelle_distance
+                    precedents[voisin] = noeud_courant
+                    visite.append((nouvelle_distance, voisin))
+        
+        if fin not in precedents:
+            return []
+            
+        chemin = []
+        noeud_courant = fin
+        while noeud_courant != debut:
+            chemin.append(noeud_courant)
+            noeud_courant = precedents[noeud_courant]
+        chemin.append(debut)
+        
+        return list(reversed(chemin))
     
     def ajouter_obstacle(self, x: int, y: int) -> bool:
         """Ajoute un obstacle dans le projet et met à jour la grille"""
@@ -197,8 +180,11 @@ class CheminModele:
         if not self._est_position_valide((x, y)):
             return False
         
-        if (x, y) in self.projet.positions_inaccessibles:
+        # Convertir les coordonnées en liste pour la comparaison
+        position = [x, y]
+        
+        if position not in self.projet.positions_inaccessibles:
             return False
         
-        self.projet.positions_inaccessibles.remove((x, y))
+        self.projet.positions_inaccessibles.remove(position)
         return True

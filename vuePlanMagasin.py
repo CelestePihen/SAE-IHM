@@ -98,25 +98,22 @@ class VuePlanMagasin(QGraphicsView):
         if event.button() == Qt.MouseButton.LeftButton:
             scene_pos: QPointF = self.mapToScene(event.pos())
             
-            # Convertir en coordonnées de grille
+            # convertir en coordonnées de grille
             grid_x: int = int(scene_pos.x() // self.taille_case)
             grid_y: int = int(scene_pos.y() // self.taille_case)
             
             if 0 <= grid_x < self.nb_cases_x and 0 <= grid_y < self.nb_cases_y:
                 if self.mode_inaccessible:
-                    # Vérifier si la zone est déjà inaccessible
-                    cle_zone = (grid_x, grid_y)
-                    if cle_zone in self.zones_inaccessibles_items:
-                        # Zone déjà inaccessible, la rendre accessible
-                        self.scene.removeItem(self.zones_inaccessibles_items[cle_zone])
-                        del self.zones_inaccessibles_items[cle_zone]
+                    zone = (grid_x, grid_y)
+                    if zone in self.zones_inaccessibles_items:
+                        # zone inaccessible, la rendre accessible
+                        self.scene.removeItem(self.zones_inaccessibles_items[zone])
+                        self.zones_inaccessibles_items.pop(zone)
                         self.zone_inaccessible_selectionnee.emit(grid_x, grid_y, False)
-                        print(f"Zone ({grid_x}, {grid_y}) rendue accessible")
                     else:
-                        # Zone accessible, la rendre inaccessible
+                        # zone accessible, la rendre inaccessible
                         self.afficher_zone_inaccessible(grid_x, grid_y)
                         self.zone_inaccessible_selectionnee.emit(grid_x, grid_y, True)
-                        print(f"Zone ({grid_x}, {grid_y}) rendue inaccessible")
                 elif self.produit_en_cours:
                     self.produit_positionne.emit(self.produit_en_cours, grid_x, grid_y)
                     self.produit_en_cours = None
@@ -129,32 +126,30 @@ class VuePlanMagasin(QGraphicsView):
         
         super().mousePressEvent(event)
         
-        
     def afficher_zone_inaccessible(self, x: int, y: int):
         """Affiche une zone inaccessible sur le plan"""
-        cle_zone = (x, y)
+        zone = (x, y)
         
-        # Ne pas créer si elle existe déjà
-        if cle_zone in self.zones_inaccessibles_items:
+        if zone in self.zones_inaccessibles_items:
             return
         
-        # Créer le rectangle pour la zone inaccessible
+        # créer le rectangle pour la zone inaccessible
         rect = QGraphicsRectItem(x * self.taille_case, y * self.taille_case,
                             self.taille_case, self.taille_case)
-        rect.setBrush(QBrush(QColor(128, 128, 128, 180)))  # Gris avec transparence
-        rect.setPen(QPen(QColor(64, 64, 64), 2))  # Bordure plus épaisse
+        rect.setBrush(QBrush(QColor(128, 128, 128, 180)))
+        rect.setPen(QPen(QColor(64, 64, 64), 2)) 
         rect.setToolTip(f"Zone inaccessible ({x}, {y})")
         
         self.scene.addItem(rect)
-        self.zones_inaccessibles_items[cle_zone] = rect
+        self.zones_inaccessibles_items[zone] = rect
     
     def afficher_produit(self, nom: str, x: int, y: int):
         """Affiche un produit positionné sur le plan"""
-        # Supprimer l'ancienne position si elle existe
+        # supprimer l'ancienne position si elle existe
         if nom in self.produit_items:
             self.scene.removeItem(self.produit_items[nom])
         
-        # Créer le nouvel item
+        # créer le nouvel item
         rect = QGraphicsRectItem(x * self.taille_case + 2, y * self.taille_case + 2,
                                self.taille_case - 4, self.taille_case - 4)
         rect.setBrush(QBrush(QColor(255, 0, 0, 150)))
@@ -166,14 +161,13 @@ class VuePlanMagasin(QGraphicsView):
         
     def afficher_entree(self, x: int, y: int):
         """Affiche l'entrée sur le plan"""
-        # Supprimer l'ancienne position si elle existe
+        # supprimer l'ancienne position si elle existe
         if self.debut_item is not None:
             if self.debut_item.scene() is not None:
-                print("Supprimer l'ancienne entrée")
                 self.scene.removeItem(self.debut_item)
             self.debut_item = None
         
-        # Créer le nouvel item
+        # créer le nouvel item
         rect = QGraphicsRectItem(x * self.taille_case + 2, y * self.taille_case + 2,
                                self.taille_case - 4, self.taille_case - 4)
         rect.setBrush(QBrush(QColor(0, 0, 255, 150)))
@@ -182,18 +176,16 @@ class VuePlanMagasin(QGraphicsView):
         
         self.scene.addItem(rect)
         self.debut_item = rect
-        print(f"Entrée positionnée en ({x}, {y})")
         
     def afficher_sortie(self, x: int, y: int):
         """Affiche la sortie sur le plan"""
-        # Supprimer l'ancienne position si elle existe
+        # supprimer l'ancienne position si elle existe
         if self.fin_item is not None:
             if self.fin_item.scene() is not None:
-                print("Supprimer l'ancienne sortie")
                 self.scene.removeItem(self.fin_item)
             self.fin_item = None
         
-        # Créer le nouvel item
+        # créer le nouvel item
         rect = QGraphicsRectItem(x * self.taille_case + 2, y * self.taille_case + 2,
                                self.taille_case - 4, self.taille_case - 4)
         rect.setBrush(QBrush(QColor(0, 255, 255, 150)))
@@ -202,7 +194,6 @@ class VuePlanMagasin(QGraphicsView):
         
         self.scene.addItem(rect)
         self.fin_item = rect
-        print(f"Sortie positionnée en ({x}, {y})")
     
     def afficher_chemin(self, chemin: list[tuple[int, int]]):
         """Affiche le chemin optimal sur le plan"""
@@ -214,7 +205,7 @@ class VuePlanMagasin(QGraphicsView):
             x1, y1 = chemin[i]
             x2, y2 = chemin[i + 1]
             
-            # Centre des cases
+            # centre des cases
             scene_x1 = x1 * self.taille_case + self.taille_case // 2
             scene_y1 = y1 * self.taille_case + self.taille_case // 2
             scene_x2 = x2 * self.taille_case + self.taille_case // 2

@@ -10,7 +10,6 @@ class VuePrincipale(QMainWindow):
         super().__init__()
         self.modele = modele
         self.init_ui()
-
     
     def init_ui(self):
         self.setWindowTitle("SAÉ Graphes-IHM - Gestion de Magasin")

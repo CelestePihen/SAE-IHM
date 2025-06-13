@@ -188,22 +188,15 @@ class VueConfigurationMagasin(QWidget):
     def zone_inaccessible_selectionnee(self, x, y, est_inaccessible):
         """Gère la sélection/désélection d'une zone inaccessible"""
         chemin_modele = CheminModele(self.modele)
+        
         if est_inaccessible:
-            # Utiliser la méthode ajouter_obstacle de CheminModele
             if chemin_modele.ajouter_obstacle(x, y):
                 self.modele.ajouter_position_inaccessible(x, y)
-                print(f"Zone ({x}, {y}) rendue inaccessible")
-                # Mettre à jour le modèle pour déclencher le signal
             else:
                 self.modele.supprimer_position_inaccessible(x, y)
-                print(f"Zone ({x}, {y}) déjà inaccessible")
         else:
-            # Utiliser la méthode supprimer_obstacle de CheminModele
             if chemin_modele.supprimer_obstacle(x, y):
-                print(f"Zone ({x}, {y}) rendue accessible")
-                # Mettre à jour le modèle pour déclencher le signal
-            else:
-                print(f"Zone ({x}, {y}) déjà accessible")
+                self.modele.supprimer_position_inaccessible(x, y)
                 
     def position_deb(self):
         if not self.modele.projet_courant:
@@ -438,7 +431,7 @@ class VueConfigurationMagasin(QWidget):
             for cle_zone, item in list(self.vue_plan.zones_inaccessibles_items.items()):
                 if cle_zone not in positions_inaccessibles_tuples:
                     self.vue_plan.scene.removeItem(item)
-                    del self.vue_plan.zones_inaccessibles_items[cle_zone]
+                    self.vue_plan.zones_inaccessibles_items.pop(cle_zone)
         
             # Afficher les nouvelles zones inaccessibles
             for pos in projet.positions_inaccessibles:

@@ -137,7 +137,7 @@ class VueCalculChemin(QWidget):
                 for cle_zone, item in list(self.vue_plan_chemin.zones_inaccessibles_items.items()):
                     if cle_zone not in [(x, y) for x, y in projet.positions_inaccessibles]:
                         self.vue_plan_chemin.scene.removeItem(item)
-                        del self.vue_plan_chemin.zones_inaccessibles_items[cle_zone]
+                        self.vue_plan_chemin.zones_inaccessibles_items.pop(cle_zone)
                 
                 # Ensuite afficher les nouvelles zones
                 for x, y in projet.positions_inaccessibles:
