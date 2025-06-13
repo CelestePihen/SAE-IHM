@@ -76,8 +76,9 @@ class VueCalculChemin(QWidget):
         layout.addWidget(splitter)
         
         # Connexions
-        self.connecter_signaux()
         self.actualiser_liste_magasins()
+        self.connecter_signaux()
+
     
     def connecter_signaux(self):
         """Connecte les signaux aux slots"""
