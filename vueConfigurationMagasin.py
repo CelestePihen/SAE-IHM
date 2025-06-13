@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt
 from ProjetModele import ProjetModele
 from vueNouveauProjet import DialogueNouveauProjet
 from vuePlanMagasin import VuePlanMagasin
+from CheminModele import CheminModele
 
 class VueConfigurationMagasin(QWidget):
     def __init__(self, modele: ProjetModele):
@@ -21,6 +22,7 @@ class VueConfigurationMagasin(QWidget):
         
         self.debut = False
         self.fin = False
+        self.mode_inaccessible = False
     
     def init_widgets(self):
         layout: QVBoxLayout= QVBoxLayout(self)
@@ -121,6 +123,8 @@ class VueConfigurationMagasin(QWidget):
         
         splitter.addWidget(config_widget)
         
+        self.btn_inaccessible : QPushButton = QPushButton("Zone inaccessible")
+        produits_layout.addWidget(self.btn_inaccessible)
         self.btn_debut : QPushButton = QPushButton("Entrée magasin")
         produits_layout.addWidget(self.btn_debut)
         self.btn_fin : QPushButton = QPushButton("Sortie magasin")
@@ -154,7 +158,53 @@ class VueConfigurationMagasin(QWidget):
         
         self.btn_debut.clicked.connect(self.position_deb)
         self.btn_fin.clicked.connect(self.position_fin)
-    
+        self.btn_inaccessible.clicked.connect(self.activer_mode_inaccessible)
+        self.vue_plan.zone_inaccessible_selectionnee.connect(self.zone_inaccessible_selectionnee)
+        
+    def activer_mode_inaccessible(self):
+        """Active le mode sélection de zones inaccessibles"""
+        if not self.modele.projet_courant:
+            QMessageBox.warning(self, "Erreur", "Aucun projet ouvert.")
+            return
+        
+        if not self.mode_inaccessible:
+            self.mode_inaccessible = True
+            self.vue_plan.definir_mode_inaccessible(True)
+            self.btn_inaccessible.setText("Arrêter la sélection")
+            self.btn_inaccessible.setStyleSheet("background-color: #ff6666; color: white;")
+            QMessageBox.information(self, "Mode sélection", 
+                                "Mode zones inaccessibles activé !\n\n"
+                                "• Cliquez sur une case accessible pour la rendre inaccessible\n"
+                                "• Cliquez sur une case inaccessible pour la rendre accessible\n"
+                                "• Cliquez sur 'Arrêter sélection' pour terminer")
+        else:
+            self.mode_inaccessible = False
+            self.vue_plan.definir_mode_inaccessible(False)
+            self.btn_inaccessible.setText("Zone inaccessible")
+            self.btn_inaccessible.setStyleSheet("")
+            QMessageBox.information(self, "Mode terminé", 
+                                "Mode sélection de zones inaccessibles désactivé.")
+
+    def zone_inaccessible_selectionnee(self, x, y, est_inaccessible):
+        """Gère la sélection/désélection d'une zone inaccessible"""
+        chemin_modele = CheminModele(self.modele)
+        if est_inaccessible:
+            # Utiliser la méthode ajouter_obstacle de CheminModele
+            if chemin_modele.ajouter_obstacle(x, y):
+                self.modele.ajouter_position_inaccessible(x, y)
+                print(f"Zone ({x}, {y}) rendue inaccessible")
+                # Mettre à jour le modèle pour déclencher le signal
+            else:
+                self.modele.supprimer_position_inaccessible(x, y)
+                print(f"Zone ({x}, {y}) déjà inaccessible")
+        else:
+            # Utiliser la méthode supprimer_obstacle de CheminModele
+            if chemin_modele.supprimer_obstacle(x, y):
+                print(f"Zone ({x}, {y}) rendue accessible")
+                # Mettre à jour le modèle pour déclencher le signal
+            else:
+                print(f"Zone ({x}, {y}) déjà accessible")
+                
     def position_deb(self):
         if not self.modele.projet_courant:
             QMessageBox.warning(self, "Erreur", "Aucun projet ouvert.")
@@ -339,43 +389,64 @@ class VueConfigurationMagasin(QWidget):
         """Met à jour tous les éléments d'affichage"""
         if self.modele.projet_courant:
             projet = self.modele.projet_courant
-            
+        
             self.label_nom.setText(projet.nom)
             self.label_auteur.setText(projet.auteur)
             self.label_date.setText(projet.date_creation)
             self.label_magasin.setText(f"{projet.nom_magasin} - {projet.adresse_magasin}")
-            
+        
             if projet.quadrillage_x > 0:
                 self.spin_x.setValue(projet.quadrillage_x)
             if projet.quadrillage_y > 0:
                 self.spin_y.setValue(projet.quadrillage_y)
             if projet.taille_case > 0:
                 self.spin_taille.setValue(projet.taille_case)
-            
+        
             if projet.plan_image and os.path.exists(projet.plan_image):
                 self.vue_plan.charger_plan(projet.plan_image)
                 if projet.quadrillage_x > 0 and projet.quadrillage_y > 0:
-                    self.vue_plan.definir_quadrillage(projet.quadrillage_x, 
-                                                    projet.quadrillage_y, 
-                                                    projet.taille_case)
-            
+                    self.vue_plan.definir_quadrillage(projet.quadrillage_x, projet.quadrillage_y, projet.taille_case)
+        
             self.liste_produits_magasin.clear()
             for produit in projet.produits:
                 status = "✓" if produit.est_positionne() else "○"
                 position = f"({produit.position_x},{produit.position_y})" if produit.est_positionne() else ""
                 texte = f"{status} {produit.nom} ({produit.categorie}) {position}"
                 self.liste_produits_magasin.addItem(texte)
-                
+            
                 if produit.est_positionne():
                     self.vue_plan.afficher_produit(produit.nom, produit.position_x, produit.position_y)
-                    
+        
+            # Gestion sécurisée des points début/fin (conversion liste -> tuple)
             if projet.debut is not None:
-                print("vueConfigurationMagasin: mettre_a_jour_affichage: début déjà positionné")
-                self.vue_plan.afficher_entree(projet.debut[0], projet.debut[1])
-                
+                debut = tuple(projet.debut) if isinstance(projet.debut, list) else projet.debut
+                self.vue_plan.afficher_entree(debut[0], debut[1])
+            
             if projet.fin is not None:
-                print("vueConfigurationMagasin: mettre_a_jour_affichage: fin déjà positionnée")
-                self.vue_plan.afficher_sortie(projet.fin[0], projet.fin[1])
+                fin = tuple(projet.fin) if isinstance(projet.fin, list) else projet.fin
+                self.vue_plan.afficher_sortie(fin[0], fin[1])
+        
+            # Normaliser les positions inaccessibles en tuples
+            positions_inaccessibles_tuples = set()
+            for pos in projet.positions_inaccessibles:
+                if isinstance(pos, list):
+                    positions_inaccessibles_tuples.add(tuple(pos))
+                else:
+                    positions_inaccessibles_tuples.add(pos)
+            
+            # Supprimer les zones qui ne sont plus inaccessibles
+            for cle_zone, item in list(self.vue_plan.zones_inaccessibles_items.items()):
+                if cle_zone not in positions_inaccessibles_tuples:
+                    self.vue_plan.scene.removeItem(item)
+                    del self.vue_plan.zones_inaccessibles_items[cle_zone]
+        
+            # Afficher les nouvelles zones inaccessibles
+            for pos in projet.positions_inaccessibles:
+                if isinstance(pos, list):
+                    x, y = pos[0], pos[1]
+                else:
+                    x, y = pos
+                self.vue_plan.afficher_zone_inaccessible(x, y)
         else:
             self.label_nom.setText("-")
             self.label_auteur.setText("-")
@@ -383,3 +454,4 @@ class VueConfigurationMagasin(QWidget):
             self.label_magasin.setText("-")
             self.liste_produits_magasin.clear()
             self.vue_plan.scene.clear()
+            self.vue_plan.zones_inaccessibles_items.clear()

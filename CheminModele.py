@@ -17,12 +17,24 @@ class CheminModele:
         for y in range(self.projet.quadrillage_y):
             ligne: list[bool] = []
             for x in range(self.projet.quadrillage_x):
-                # vérifier si la position est dans la liste des positions inaccessibles
-                if (x, y) in self.projet.positions_inaccessibles:
-                    ligne.append(False)
-                else:
-                    ligne.append(True)
+                # Convertir les listes en tuples pour la comparaison
+                position_actuelle = (x, y)
+                est_inaccessible = False
+                
+                for pos_inaccess in self.projet.positions_inaccessibles:
+                    # Gérer les cas où pos_inaccess peut être une liste ou un tuple
+                    if isinstance(pos_inaccess, list):
+                        pos_tuple = tuple(pos_inaccess)
+                    else:
+                        pos_tuple = pos_inaccess
+                    
+                    if position_actuelle == pos_tuple:
+                        est_inaccessible = True
+                        break
+                
+                ligne.append(not est_inaccessible)
             grille.append(ligne)
+        
         return grille
    
     def calculer_chemin_optimal(self, liste_courses: list[str]) -> list[tuple[int, int]]:
@@ -41,14 +53,15 @@ class CheminModele:
         if not positions_produits:
             return []
        
-        point_debut: tuple[int, int] = self.projet.debut
-        point_fin: tuple[int, int] = self.projet.fin
+        # Conversion des listes en tuples si nécessaire
+        point_debut = tuple(self.projet.debut) if isinstance(self.projet.debut, list) else self.projet.debut
+        point_fin = tuple(self.projet.fin) if isinstance(self.projet.fin, list) else self.projet.fin
         
         # vérifier que les points début et fin sont valides
         if not self._est_position_valide(point_debut) or not self._est_position_valide(point_fin):
             return []
        
-        # Algorithme de Dijkstra
+        # Algorithme de recherche du plus proche voisin (glouton)
         chemin_complet: list = []
         position_actuelle: tuple[int, int] = point_debut
         produits_restants: list[tuple[int, int]] = positions_produits.copy()
@@ -69,6 +82,7 @@ class CheminModele:
                 
             # calculer le chemin vers ce produit
             chemin_vers_produit: list[tuple[int, int]] = self._dijkstra(position_actuelle, produit_proche)
+            
             if chemin_vers_produit:
                 # éviter la duplication du point de départ sauf pour le premier segment
                 if chemin_complet:
@@ -92,8 +106,15 @@ class CheminModele:
         if not self.grille_accessible:
             return False
         hauteur: int = len(self.grille_accessible)
-        largeur: int = len(self.grille_accessible[0])
-        return (0 <= x < largeur and 0 <= y < hauteur and self.grille_accessible[y][x])
+        largeur: int = len(self.grille_accessible[0]) if self.grille_accessible else 0
+        
+        # Vérifier les limites
+        if not (0 <= x < largeur and 0 <= y < hauteur):
+            return False
+        
+        # Vérifier l'accessibilité
+        accessible = self.grille_accessible[y][x]
+        return accessible
     
     def _dijkstra_distance(self, debut: tuple[int, int], fin: tuple[int, int]) -> float:
         """Calcule la distance réelle entre deux points avec Dijkstra"""
@@ -105,15 +126,10 @@ class CheminModele:
         if not self.grille_accessible:
             return []
        
-        if isinstance(debut, list):
-            debut = tuple(debut)
-        if isinstance(fin, list):
-            fin = tuple(fin)
-       
         hauteur: int = len(self.grille_accessible)
         largeur: int = len(self.grille_accessible[0])
        
-        # vérifications
+        # vérifications de base
         if (not (0 <= debut[0] < largeur and 0 <= debut[1] < hauteur) or
             not (0 <= fin[0] < largeur and 0 <= fin[1] < hauteur)):
             return []
@@ -121,20 +137,20 @@ class CheminModele:
         if not self.grille_accessible[debut[1]][debut[0]] or not self.grille_accessible[fin[1]][fin[0]]:
             return []
        
-        file: list[tuple[int, tuple[int, int]]] = [(0, debut)]
+        import heapq
+        file = [(0, debut)]
         distances = {debut: 0}
         predecesseurs = {}
-        visites: list[tuple[int, int]] = []
+        visites = set()
        
         while file:
-            distance_actuelle, position_actuelle = min(file)
-            file.remove((distance_actuelle, position_actuelle))
+            distance_actuelle, position_actuelle = heapq.heappop(file)
            
-            # si on a déjà visité cette position avec une meilleure distance
+            # si on a déjà visité cette position
             if position_actuelle in visites:
                 continue
                 
-            visites.append(position_actuelle)
+            visites.add(position_actuelle)
            
             # si on a atteint la destination
             if position_actuelle == fin:
@@ -161,23 +177,28 @@ class CheminModele:
                     if voisin not in distances or nouvelle_distance < distances[voisin]:
                         distances[voisin] = nouvelle_distance
                         predecesseurs[voisin] = position_actuelle
-                        file.append((nouvelle_distance, voisin))
-                        file.sort(key=lambda x: x[0])
+                        heapq.heappush(file, (nouvelle_distance, voisin))
        
         return []  # aucun chemin trouvé
     
     def ajouter_obstacle(self, x: int, y: int) -> bool:
         """Ajoute un obstacle dans le projet et met à jour la grille"""
-        if self.projet.ajouter_position_inaccessible(x, y):
-            # mettre à jour la grille accessible
-            self._generer_grille_accessible()
-            return True
-        return False
-    
+        if not self._est_position_valide((x, y)):
+            return False
+        
+        if (x, y) in self.projet.positions_inaccessibles:
+            return False
+        
+        self.projet.positions_inaccessibles.append((x, y))
+        return True
+
     def supprimer_obstacle(self, x: int, y: int) -> bool:
         """Supprime un obstacle du projet et met à jour la grille"""
-        if self.projet.supprimer_position_inaccessible(x, y):
-            # mettre à jour la grille accessible
-            self._generer_grille_accessible()
-            return True
-        return False
+        if not self._est_position_valide((x, y)):
+            return False
+        
+        if (x, y) in self.projet.positions_inaccessibles:
+            return False
+        
+        self.projet.positions_inaccessibles.remove((x, y))
+        return True

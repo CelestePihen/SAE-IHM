@@ -132,7 +132,17 @@ class VueCalculChemin(QWidget):
                 
             if projet.fin is not None:
                 self.vue_plan_chemin.afficher_sortie(projet.fin[0], projet.fin[1])
-    
+            
+            if projet.positions_inaccessibles:
+                for cle_zone, item in list(self.vue_plan_chemin.zones_inaccessibles_items.items()):
+                    if cle_zone not in [(x, y) for x, y in projet.positions_inaccessibles]:
+                        self.vue_plan_chemin.scene.removeItem(item)
+                        del self.vue_plan_chemin.zones_inaccessibles_items[cle_zone]
+                
+                # Ensuite afficher les nouvelles zones
+                for x, y in projet.positions_inaccessibles:
+                    self.vue_plan_chemin.afficher_zone_inaccessible(x, y)
+
     def actualiser_produits_disponibles(self):
         """Met à jour la liste des produits disponibles dans le magasin"""
         self.liste_produits_dispo.clear()

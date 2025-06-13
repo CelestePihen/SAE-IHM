@@ -13,6 +13,7 @@ class VuePlanMagasin(QGraphicsView):
     produit_positionne: pyqtSignal = pyqtSignal(str, int, int)
     debut_position: pyqtSignal = pyqtSignal(int, int)
     fin_position: pyqtSignal = pyqtSignal(int, int)
+    zone_inaccessible_selectionnee: pyqtSignal = pyqtSignal(int, int, bool)
     
     def __init__(self):
         super().__init__()
@@ -33,12 +34,19 @@ class VuePlanMagasin(QGraphicsView):
         
         self.debut = False
         self.fin = False
+        self.mode_inaccessible = False
+        self.zones_inaccessibles_items: dict = {}  # dictionnaire des zones inaccessibles
+        
+    def definir_mode_inaccessible(self, mode: bool):
+        """Définit si on est en mode sélection de zones inaccessibles"""
+        self.mode_inaccessible = mode
     
     def charger_plan(self, chemin_image: str):
         """Charge et affiche le plan du magasin"""
         self.scene.clear()
         self.quadrillage_items.clear()
         self.produit_items.clear()
+        self.zones_inaccessibles_items.clear()  # Ajouter cette ligne
         self.debut_item = None
         self.fin_item = None
         
@@ -86,16 +94,30 @@ class VuePlanMagasin(QGraphicsView):
         self.fin = fin
     
     def mousePressEvent(self, event: QMouseEvent):
-        """Gère le clic pour positionner un produit"""
+        """Gère le clic pour positionner un produit ou sélectionner une zone inaccessible"""
         if event.button() == Qt.MouseButton.LeftButton:
             scene_pos: QPointF = self.mapToScene(event.pos())
             
-            # convertir en coordonnées de grille
+            # Convertir en coordonnées de grille
             grid_x: int = int(scene_pos.x() // self.taille_case)
             grid_y: int = int(scene_pos.y() // self.taille_case)
             
             if 0 <= grid_x < self.nb_cases_x and 0 <= grid_y < self.nb_cases_y:
-                if self.produit_en_cours:
+                if self.mode_inaccessible:
+                    # Vérifier si la zone est déjà inaccessible
+                    cle_zone = (grid_x, grid_y)
+                    if cle_zone in self.zones_inaccessibles_items:
+                        # Zone déjà inaccessible, la rendre accessible
+                        self.scene.removeItem(self.zones_inaccessibles_items[cle_zone])
+                        del self.zones_inaccessibles_items[cle_zone]
+                        self.zone_inaccessible_selectionnee.emit(grid_x, grid_y, False)
+                        print(f"Zone ({grid_x}, {grid_y}) rendue accessible")
+                    else:
+                        # Zone accessible, la rendre inaccessible
+                        self.afficher_zone_inaccessible(grid_x, grid_y)
+                        self.zone_inaccessible_selectionnee.emit(grid_x, grid_y, True)
+                        print(f"Zone ({grid_x}, {grid_y}) rendue inaccessible")
+                elif self.produit_en_cours:
                     self.produit_positionne.emit(self.produit_en_cours, grid_x, grid_y)
                     self.produit_en_cours = None
                 elif self.debut == True:
@@ -106,6 +128,25 @@ class VuePlanMagasin(QGraphicsView):
                     self.fin = False
         
         super().mousePressEvent(event)
+        
+        
+    def afficher_zone_inaccessible(self, x: int, y: int):
+        """Affiche une zone inaccessible sur le plan"""
+        cle_zone = (x, y)
+        
+        # Ne pas créer si elle existe déjà
+        if cle_zone in self.zones_inaccessibles_items:
+            return
+        
+        # Créer le rectangle pour la zone inaccessible
+        rect = QGraphicsRectItem(x * self.taille_case, y * self.taille_case,
+                            self.taille_case, self.taille_case)
+        rect.setBrush(QBrush(QColor(128, 128, 128, 180)))  # Gris avec transparence
+        rect.setPen(QPen(QColor(64, 64, 64), 2))  # Bordure plus épaisse
+        rect.setToolTip(f"Zone inaccessible ({x}, {y})")
+        
+        self.scene.addItem(rect)
+        self.zones_inaccessibles_items[cle_zone] = rect
     
     def afficher_produit(self, nom: str, x: int, y: int):
         """Affiche un produit positionné sur le plan"""

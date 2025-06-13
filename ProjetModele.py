@@ -256,3 +256,23 @@ class ProjetModele(QObject):
     def _projet_existe(self, nom: str) -> bool:
         """Vérifie si un projet existe déjà"""
         return nom in self.lister_projets()
+    
+    def ajouter_position_inaccessible(self, x: int, y: int) -> bool:
+        """Ajoute une position inaccessible au projet courant"""
+        if not self.projet_courant:
+            return False
+        
+        success = self.projet_courant.ajouter_position_inaccessible(x, y)
+        if success:
+            self.projet_modifie.emit()
+        return success
+
+    def supprimer_position_inaccessible(self, x: int, y: int) -> bool:
+        """Supprime une position inaccessible du projet courant"""
+        if not self.projet_courant:
+            return False
+        
+        success = self.projet_courant.supprimer_position_inaccessible(x, y)
+        if success:
+            self.projet_modifie.emit()
+        return success
