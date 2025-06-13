@@ -2,14 +2,14 @@ from ProduitModele import Produit
 import json, os, shutil
 from PyQt6.QtCore import pyqtSignal, QObject
 from datetime import datetime
-from dataclasses import asdict
 
 class Projet:
     def __init__(self, nom: str, auteur: str, date_creation: str, 
                  nom_magasin: str, adresse_magasin: str, plan_image: str = "",
                  quadrillage_x: int = 0, quadrillage_y: int = 0, 
                  taille_case: int = 30, produits: list[Produit] = None,
-                 debut: tuple[int, int] = None, fin: tuple[int,int] = None):
+                 debut: tuple[int, int] = None, fin: tuple[int,int] = None,
+                 positions_inaccessibles: list[tuple[int, int]] = None):
         self.nom = nom
         self.auteur = auteur
         self.date_creation = date_creation
@@ -27,6 +27,31 @@ class Projet:
         else:
             self.produits = []
             
+        if positions_inaccessibles is not None:
+            self.positions_inaccessibles = positions_inaccessibles
+        else:
+            self.positions_inaccessibles = []
+            
+    def ajouter_position_inaccessible(self, x: int, y: int) -> bool:
+        """Ajoute une position inaccessible"""
+        position: tuple[int, int] = (x, y)
+        if position not in self.positions_inaccessibles:
+            self.positions_inaccessibles.append(position)
+            return True
+        return False
+    
+    def supprimer_position_inaccessible(self, x: int, y: int) -> bool:
+        """Supprime une position inaccessible"""
+        position: tuple[int, int] = (x, y)
+        if position in self.positions_inaccessibles:
+            self.positions_inaccessibles.remove(position)
+            return True
+        return False
+    
+    def est_position_accessible(self, x: int, y: int) -> bool:
+        """Vérifie si une position est accessible"""
+        return (x, y) not in self.positions_inaccessibles
+            
     def to_dict(self) -> dict:
         """Convertit le projet en dictionnaire pour la sérialisation JSON"""
         return {
@@ -41,7 +66,8 @@ class Projet:
             'taille_case': self.taille_case,
             'produits': [p.__dict__ for p in self.produits],
             'debut': self.debut,
-            'fin': self.fin
+            'fin': self.fin,
+            "positions_inaccessibles": self.positions_inaccessibles
         }
             
 class ProjetModele(QObject):
@@ -56,7 +82,7 @@ class ProjetModele(QObject):
     
     def _charger_produits_disponibles(self) -> list[Produit]:
         """Charge la liste des produits disponibles depuis le fichier JSON"""
-        produits: list = []
+        produits: list[Produit] = []
         try:
             with open('liste_produits.json', 'r', encoding='utf-8') as f:
                 data: dict = json.load(f)
